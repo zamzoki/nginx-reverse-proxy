@@ -1,0 +1,29 @@
+FROM node:16-alpine as builder
+
+WORKDIR /app
+
+# install node modules
+COPY package.json .
+COPY yarn.lock .
+RUN yarn --frozen-lockfile
+
+# build bundle
+COPY . .
+RUN yarn build
+
+# nginx
+FROM nginx:1.21.0-alpine as production
+ENV NODE_ENV production
+
+# nginx config
+RUN rm -rf /etc/nginx/conf.d
+COPY conf /etc/nginx
+
+# static build
+COPY --from=builder /app/build /usr/share/nginx/html
+
+# default port exposure
+EXPOSE 3000
+
+
+CMD ["nginx", "-g", "daemon off;"]
